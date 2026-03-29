@@ -52,7 +52,6 @@ COL_LOOP:
     ; --- Print row sum in GREEN ---
     ADD BL, '0'               ; Convert sum to ASCII
     MOV AL, BL                ; Save char before BL overwritten
-
     PUSH CX
     MOV AH, 09h
     MOV BH, 0
