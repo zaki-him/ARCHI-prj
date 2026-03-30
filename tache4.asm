@@ -52,7 +52,6 @@ COL_LOOP:
     ; --- Print row sum in GREEN ---
     ADD BL, '0'               ; Convert sum to ASCII
     MOV AL, BL                ; Save char before BL overwritten
-
     PUSH CX
     MOV AH, 09h
     MOV BH, 0
@@ -72,7 +71,6 @@ COL_LOOP:
     MOV AH, 03h
     MOV BH, 0
     INT 10h                   ; Read current cursor ? DH=row, DL=col
-
     INC DH                    ; Next row
     MOV DL, 0                 ; Reset to column 0
     MOV AH, 02h
