@@ -1,0 +1,36 @@
+horizontal_reflection PROC
+    mov cx, ROWS
+    shr cx, 1
+
+    mov si, 0
+
+    mov ax, ROWS
+    dec ax
+    mov bx, COLS
+    mul bx
+    mov di, ax
+
+swap_rows:
+    push cx
+
+    mov cx, COLS
+    xor bx, bx
+
+swap_elements:
+    mov al, matrix[si+bx]
+    mov dl, matrix[di+bx]
+
+    mov matrix[si+bx], dl
+    mov matrix[di+bx], al
+
+    inc bx
+    loop swap_elements
+
+    add si, COLS
+    sub di, COLS
+
+    pop cx
+    loop swap_rows
+
+    ret
+horizontal_reflection ENDP
