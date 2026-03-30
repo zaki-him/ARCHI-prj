@@ -1,28 +1,3 @@
-DATA_SEG  SEGMENT
-COL EQU 7 ;Num OF COLUMNS
-ROW EQU 4 ;Num OF ROWS
-SUM DB ?
-TAB_C DB 7 DUP(?) ;TABLE USED FOR COL-REDUCTION
-MATRICE DB 1 ,1 ,0 ,1 ,0 ,0 ,1  
-        DB 0 ,1 ,0 ,1 ,1 ,0 ,0
-        DB 1 ,0 ,0 ,0 ,1 ,1 ,0 
-        DB 0 ,1 ,0 ,1 ,0 ,0 ,1 
-        
-TAB_ASCII DB  '0123456789' 
-          DB  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-          DB  'abcdefghijklmnopqrstuvwxyz'
-          DB  ' !\"#$%&''()*+,-./:;<=>?@[\\]^_`{|}~' ;REDUCED ASCII TABLE
-  
-DATA_SEG ENDS
-
-PILE SEGMENT STACK
-FRAME DW 256 DUP(?) 
-TOP LABEL WORD
-PILE ENDS
-
-CODE_SEG  SEGMENT
-    ASSUME CS:CODE_SEG, DS: DATA_SEG, SS: PILE
-    
 COLUMN_REDUCTION PROC
     MOV AX,DATA_SEG
     MOV DS,AX
@@ -66,20 +41,6 @@ PRINT:
     RET
 COLUMN_REDUCTION ENDP
 
-START:
-    MOV AX,PILE
-    MOV SS,AX
-    LEA SP,TOP
-    CALL COLUMN_REDUCTION
-  
-    MOV AX,4C00H
-    INT 21H
-  
-    
-    
-   
-CODE_SEG ENDS
-    END START
            
     
     
