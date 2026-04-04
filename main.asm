@@ -1,0 +1,196 @@
+;════════════════════════════════════════════════════════════════════════════════
+; MAIN.ASM - Main Assembly Program
+; Project: Architecture II - Team Project
+; Purpose: Orchestrates all team tasks (Task 1-7)
+; Assembler: MASM/TASM
+; Environment: EMU8086 (16-bit 8086 Assembly)
+;════════════════════════════════════════════════════════════════════════════════
+
+STACK SEGMENT PARA STACK
+    DW 100 DUP(?)
+STACK ENDS
+
+DATA SEGMENT
+    ; ─── Matrix Definition (4 rows × 7 columns) ───
+    matrix DB '9','7','?','2','4','M','8'
+           DB '2','4','M','8','2','9','u'
+           DB '?','4','0','/','6','2','1'
+           DB '-','2','3','A','5','B','6'
+
+    ; ─── Constants ───
+    ROWS EQU 4
+    COLS EQU 7
+    TOTAL EQU 28
+
+    ; ─── Color Array (for task 2) ───
+    color DB 28 DUP(07h)         ; Default light gray
+
+    ; ─── Variables for Column Reduction ───
+    COL EQU 7
+    ROW EQU 4
+    SUM DB ?
+    TAB_C DB 7 DUP(?)
+    
+    TAB_ASCII DB  '0123456789' 
+          DB  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+          DB  'abcdefghijklmnopqrstuvwxyz'
+          DB  ' !\"#$%&''()*+,-./:;<=>?@[\\]^_`{|}~' ;REDUCED ASCII TABLE
+
+    ; ─── Messages ───
+    msg_title DB 0Dh, 0Ah, '╔════════════════════════════════════════════════════════════════╗', 0Dh, 0Ah, '$'
+    msg_task1 DB 0Dh, 0Ah, '──────────────────────────────────────────────────────────────', 0Dh, 0Ah
+              DB '[TASK 1] Displaying Original Matrix...', 0Dh, 0Ah
+              DB 0Dh, 0Ah, '$'
+    msg_task2 DB 0Dh, 0Ah, '[TASK 2] Cleaning Matrix (Replacing non-digits with 0)...', 0Dh, 0Ah
+              DB 0Dh, 0Ah, '$'
+    msg_task3 DB 0Dh, 0Ah, '[TASK 3] Applying Threshold Filter (< 5 = 0, >= 5 = 1)...', 0Dh, 0Ah
+              DB 0Dh, 0Ah, '$'
+    msg_task4 DB 0Dh, 0Ah, '[TASK 4] Displaying Matrix with Row Sums (GREEN)...', 0Dh, 0Ah
+              DB 0Dh, 0Ah, '$'
+    msg_task5 DB 0Dh, 0Ah, '[TASK 5] Column Sums (YELLOW)...', 0Dh, 0Ah
+              DB 0Dh, 0Ah, '$'
+    msg_task6 DB 0Dh, 0Ah, '[TASK 6] Horizontal Reflection (Flip rows)...', 0Dh, 0Ah
+              DB 0Dh, 0Ah, '$'
+    msg_task7 DB 0Dh, 0Ah, '[TASK 7] Vertical Reflection (Flip columns)...', 0Dh, 0Ah
+              DB 0Dh, 0Ah, '$'
+    msg_final DB 0Dh, 0Ah, '[FINAL] Displaying Reflected Matrix...', 0Dh, 0Ah
+              DB 0Dh, 0Ah, '$'
+    msg_end   DB 0Dh, 0Ah, '╚════════════════════════════════════════════════════════════════╝', 0Dh, 0Ah
+              DB 'Press any key to exit...', 0Dh, 0Ah, '$'
+
+    ; ─── Utility Variables ───
+    space2 DB '    ', '$'
+
+DATA ENDS
+
+CODE SEGMENT
+    ASSUME CS:CODE, DS:DATA, SS:STACK
+
+;═══════════════════════════════════════════════════════════════════════════════
+; INCLUDE TASK PROCEDURES
+;═══════════════════════════════════════════════════════════════════════════════
+INCLUDE task1.asm
+INCLUDE tachee2.asm
+INCLUDE task3.asm
+INCLUDE tache4.asm
+INCLUDE task5.asm
+INCLUDE task67.asm
+
+;═══════════════════════════════════════════════════════════════════════════════
+; MAIN ENTRY POINT
+;═══════════════════════════════════════════════════════════════════════════════
+MAIN:
+    ; Initialize data segment
+    MOV AX, DATA
+    MOV DS, AX
+    MOV ES, AX
+
+    ; Clear screen
+    MOV AH, 00h
+    MOV AL, 03h
+    INT 10h
+
+    ; ─── Display Title ───
+    LEA DX, msg_title
+    MOV AH, 09h
+    INT 21h
+
+    CALL PAUSE_SCREEN
+
+
+    ; TASK 1: Display Original Matrix
+
+    LEA DX, msg_task1
+    CALL DISPLAY_MESSAGE
+    CALL display_matrix
+    CALL PAUSE_SCREEN
+
+
+    ; TASK 2: Clean Matrix
+
+    LEA DX, msg_task2
+    CALL DISPLAY_MESSAGE
+    CALL CleanMatrix
+    CALL DisplayMatrix
+    CALL PAUSE_SCREEN
+
+
+    ; TASK 3: Threshold Processing
+
+    LEA DX, msg_task3
+    CALL DISPLAY_MESSAGE
+    CALL tache3
+    CALL PAUSE_SCREEN
+
+
+    ; TASK 4: Display Matrix with Row Sums
+
+    LEA DX, msg_task4
+    CALL DISPLAY_MESSAGE
+    CALL TACHE4
+    CALL PAUSE_SCREEN
+
+
+    ; TASK 5: Column Reduction (Column Sums)
+
+    LEA DX, msg_task5
+    CALL DISPLAY_MESSAGE
+    CALL COLUMN_REDUCTION
+    CALL PAUSE_SCREEN
+
+
+    ; TASK 6: Horizontal Reflection
+
+    LEA DX, msg_task6
+    CALL DISPLAY_MESSAGE
+    CALL HORIZ_REFLECT
+    CALL PAUSE_SCREEN
+
+
+    ; TASK 7: Vertical Reflection
+
+    LEA DX, msg_task7
+    CALL DISPLAY_MESSAGE
+    CALL VERT_REFLECT
+    CALL PAUSE_SCREEN
+
+
+    ; FINAL: Display Reflected Matrix
+
+    LEA DX, msg_final
+    CALL DISPLAY_MESSAGE
+    CALL display_matrix
+    CALL PAUSE_SCREEN
+
+    ; ─── Display End Message ───
+    LEA DX, msg_end
+    CALL DISPLAY_MESSAGE
+
+    ; Exit program
+    MOV AH, 4Ch
+    INT 21h
+
+
+; UTILITY PROCEDURES
+
+
+DISPLAY_MESSAGE PROC
+    PUSH AX
+    MOV AH, 09h
+    INT 21h
+    POP AX
+    RET
+DISPLAY_MESSAGE ENDP
+
+PAUSE_SCREEN PROC
+    PUSH AX
+    PUSH DX
+    MOV AH, 08h                    ; Read character without echo
+    INT 21h
+    POP DX
+    POP AX
+    RET
+PAUSE_SCREEN ENDP
+
+CODE ENDS
+END MAIN
