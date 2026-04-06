@@ -5,45 +5,37 @@ COLUMN_REDUCTION PROC
     PUSH DX
     PUSH SI
     PUSH DI
-    
-    XOR DI, DI                      ; SETTING DESTINATION INDEX REG TO 0
-    MOV CX, COL
-    
-    LEA BX, TAB_ASCII               ; Access to ASCII table for conversion
-
+    XOR DI, DI ;SETTING DESTINATION INDEX REG TO 0
+    MOV CX, COLS
+    LEA BX, TAB_ASCII ;ACCES TO A REDUCED ASCII TABLE TO CONVERT RESULTS 
 TAB:
-    MOV SI, DI                      ; SI and DI point to same 1:J element
+    MOV SI, DI ;SI AND DI ARE POINTING TO THE SAME 1:J ELEMENT EVERY 
     MOV SUM, 0
-    MOV DX, ROW                     ; Using DX as counter
-
+    MOV DX, ROWS  ;USING DX AS A COUNTER
 SUMM:
-    MOV AL, matrix[SI]              ; Get element from matrix
-    ADD SUM, AL                     ; Accumulate sum
-    ADD SI, COL                     ; Move to next row, same column
+    MOV AL, matrix[SI] 
+    SUB AL, '0'  ; Convert char to number
+    ADD SUM, AL
+    ADD SI, COLS ;EVERY ELEMENT IN THE SAME COLUMN-DIFFERENT ROW ARE PLACED
     DEC DX
     CMP DX, 0
     JNZ SUMM
-    
     MOV AL, SUM
-    XLAT                            ; Convert byte to ASCII
+    XLAT ;CONVERSION NEEDED INSTRUCTION
     MOV TAB_C[DI], AL
     INC DI
-    
     LOOP TAB
-
-    ; Print column sums in YELLOW
-    MOV CX, COL                     ; Counter: Num OF CHARS
-    MOV SI, OFFSET TAB_C            ; Access to char
-    
+    ;IN PRINT STEP,WE'LL BE USING THE FUNCTION 09H/10H AND NEED 
+    ;FOLLOWING REGESTERS FOR:
+    MOV CX, COLS ;COUNTER: Num OF CHARS
+    LEA SI, TAB_C  ;ACCES TO CHAR
 PRINT:
-    LODSB                           ; Load next byte in SI to AL
-    MOV AH, 09H                     ; Function Num
-    MOV BH, 0                       ; PAGE Num
-    MOV BL, 0EH                    ; COLOR: YELLOW
-    MOV CX, 1
+    LODSB ;INSTRUCTION TO LOAD THE NEXT BYTE IN SI TO AL
+    MOV AH, 09H ;FUNCTION Num
+    MOV BH, 0 ;PAGE Num
+    MOV BL, 0EH ;COLOR: YELLOW
     INT 10H
     LOOP PRINT
-
     POP DI
     POP SI
     POP DX
@@ -52,3 +44,7 @@ PRINT:
     POP AX
     RET
 COLUMN_REDUCTION ENDP
+           
+    
+    
+    

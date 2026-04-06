@@ -12,8 +12,10 @@ ROW_LOOP:
     XOR BL, BL                ; Reset row sum
 COL_LOOP:
     MOV AL, [SI]
-    ADD BL, AL                ; Accumulate sum
-    ADD AL, '0'               ; Convert to ASCII
+    PUSH AX                   ; Save char for printing
+    SUB AL, '0'               ; Convert to number
+    ADD BL, AL                ; Accumulate numeric sum
+    POP AX                    ; Restore char for printing
     ; --- Print element in WHITE using INT 10h AH=09h ---
     PUSH BX                   ; Save sum (BL will be used for color)
     PUSH CX                   ; Save col counter (CX used by INT 10h)
