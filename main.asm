@@ -135,7 +135,6 @@ MAIN:
     LEA DX, msg_task4
     CALL DISPLAY_MESSAGE
     CALL TACHE4
-    CALL display_matrix
     CALL WAIT_6S
     CALL CLEAR_SCREEN
 
