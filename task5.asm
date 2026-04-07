@@ -5,68 +5,55 @@ COLUMN_REDUCTION PROC
     PUSH DX
     PUSH SI
     PUSH DI
-    XOR DI, DI              ; SETTING DESTINATION INDEX REG TO 0
-    MOV CX, COLS
-    LEA BX, TAB_ASCII       ; ACCESS TO A REDUCED ASCII TABLE TO CONVERT RESULTS
-TAB:
-    MOV SI, DI              ; SI AND DI ARE POINTING TO THE SAME 1:J ELEMENT EVERY
-    MOV SUM, 0
-    MOV DX, ROWS            ; USING DX AS A COUNTER
-SUMM:
+    
+    XOR DI, DI              ; INDEX FOR RESULT ARRAY
+    MOV CX, COLS            ; LOOP COUNTER FOR COLUMNS
+    LEA BX, TAB_ASCII       ; LOOKUP TABLE FOR CONVERSION
+    
+; ===== CALCULATE COLUMN SUMS =====
+CALC_LOOP:
+    MOV SI, DI              ; STARTING POSITION FOR COLUMN
+    MOV SUM, 0              ; RESET SUM
+    MOV DX, ROWS            ; ROW COUNTER
+    
+SUM_LOOP:
     MOV AL, matrix[SI]
-    SUB AL, '0'             ; CONVERT CHAR TO NUMBER
-    ADD SUM, AL
-    ADD SI, COLS            ; EVERY ELEMENT IN THE SAME COLUMN-DIFFERENT ROW ARE PLACED
+    SUB AL, '0'             ; CONVERT ASCII CHAR TO NUMBER
+    ADD SUM, AL             ; ADD TO COLUMN SUM
+    ADD SI, COLS            ; MOVE TO NEXT ROW IN SAME COLUMN
     DEC DX
-    CMP DX, 0
-    JNZ SUMM
+    JNZ SUM_LOOP
+    
     MOV AL, SUM
-    XLAT                    ; CONVERSION NEEDED INSTRUCTION
-    MOV TAB_C[DI], AL
+    XLAT                    ; CONVERT NUMBER TO ASCII USING TABLE
+    MOV TAB_C[DI], AL       ; STORE CONVERTED CHARACTER
     INC DI
-    LOOP TAB
-    ; PRINT STEP
-    MOV CX, COLS            ; COUNTER: Num OF CHARS
-    LEA SI, TAB_C           ; ACCESS TO CHAR ARRAY
-    ADD SI, COLS            ; MOVE SI TO ONE PAST THE END
-    DEC SI                  ; MOVE SI TO THE LAST ELEMENT
-PRINT:
-    MOV AL, [SI]            ; LOAD CURRENT ELEMENT
-    ; --- Print element in YELLOW using INT 10h AH=09h ---
-    PUSH BX                 ; SAVE BX (COLOR WILL OVERWRITE BL)
-    PUSH CX                 ; SAVE LOOP COUNTER (CX USED BY INT 10h)
-    MOV AH, 09H             ; FUNCTION Num
-    MOV BH, 0               ; PAGE Num
-    MOV BL, 0EH             ; COLOR: YELLOW
-    MOV CX, 1               ; PRINT 1 TIME
-    INT 10H
-    ; --- Advance cursor right ---
-    MOV AH, 03H
-    MOV BH, 0
-    INT 10H                 ; READ CURSOR -> DH=ROW, DL=COL
-    INC DL                  ; MOVE ONE COLUMN RIGHT
+    LOOP CALC_LOOP
+    
+; ===== DISPLAY RESULTS USING INT 21H AH=02H =====
+    MOV CX, COLS            ; RESET COUNTER FOR DISPLAY
+    LEA SI, TAB_C           ; POINT TO RESULT ARRAY
+    
+DISPLAY_LOOP:
+    MOV AH, 02H             ; INT 21H FUNCTION 02H: WRITE CHARACTER TO SCREEN
+    MOV DL, [SI]            ; LOAD CHARACTER FROM RESULT ARRAY
+    INT 21H                 ; OUTPUT CHARACTER
+    INC SI                  ; ✅ ADVANCE POINTER IMMEDIATELY AFTER USE
+    
+    MOV AH, 02H             ; PRINT SPACE SEPARATOR
+    MOV DL, ' '
+    INT 21H
+    
+    LOOP DISPLAY_LOOP       ; DECREMENT CX AND REPEAT
+    
+    ; NEW LINE — CORRECT DOS ORDER: CR FIRST, THEN LF
     MOV AH, 02H
-    MOV BH, 0
-    INT 10H                 ; SET NEW CURSOR POSITION
-    ; --- Print space ---
-    MOV AH, 09H
-    MOV AL, ' '
-    MOV BH, 0
-    MOV BL, 07H             ; WHITE
-    MOV CX, 1
-    INT 10H
-    ; --- Advance cursor again after space ---
-    MOV AH, 03H
-    MOV BH, 0
-    INT 10H
-    INC DL
-    MOV AH, 02H
-    MOV BH, 0
-    INT 10H
-    POP CX                  ; RESTORE LOOP COUNTER
-    POP BX                  ; RESTORE BX
-    DEC SI                  ; MOVE BACKWARDS THROUGH THE ARRAY
-    LOOP PRINT
+    MOV DL, 0DH             ; ✅ CARRIAGE RETURN FIRST
+    INT 21H
+    MOV AH, 0EH
+    MOV DL, 0AH             ; ✅ LINE FEED SECOND
+    INT 21H
+    
     POP DI
     POP SI
     POP DX
