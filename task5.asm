@@ -30,29 +30,54 @@ SUM_LOOP:
     INC DI
     LOOP CALC_LOOP
     
-; ===== DISPLAY RESULTS USING INT 21H AH=02H =====
+; ===== DISPLAY RESULTS IN YELLOW USING INT 10H AH=09H =====
     MOV CX, COLS            ; RESET COUNTER FOR DISPLAY
-    LEA SI, TAB_C           ; POINT TO RESULT ARRAY
-    
+    XOR SI, SI              ; RESET INDEX FOR TAB_C
+
 DISPLAY_LOOP:
-    MOV AH, 02H             ; INT 21H FUNCTION 02H: WRITE CHARACTER TO SCREEN
-    MOV DL, [SI]            ; LOAD CHARACTER FROM RESULT ARRAY
-    INT 21H                 ; OUTPUT CHARACTER
-    INC SI                  ; ✅ ADVANCE POINTER IMMEDIATELY AFTER USE
-    
-    MOV AH, 02H             ; PRINT SPACE SEPARATOR
-    MOV DL, ' '
-    INT 21H
-    
-    LOOP DISPLAY_LOOP       ; DECREMENT CX AND REPEAT
-    
-    ; NEW LINE — CORRECT DOS ORDER: CR FIRST, THEN LF
+    PUSH CX
+    MOV AL, TAB_C[SI]       ; LOAD CHARACTER FROM RESULT ARRAY
+    MOV AH, 09H             ; INT 10H: WRITE CHAR + ATTRIBUTE AT CURSOR
+    MOV BH, 0               ; PAGE 0
+    MOV BL, 0EH             ; YELLOW ATTRIBUTE
+    MOV CX, 1               ; PRINT 1 TIME
+    INT 10H                 ; OUTPUT CHARACTER WITH COLOR
+    ; ADVANCE CURSOR AFTER CHARACTER
+    MOV AH, 03H
+    MOV BH, 0
+    INT 10H                 ; READ CURSOR -> DH=ROW, DL=COL
+    INC DL
     MOV AH, 02H
-    MOV DL, 0DH             ; ✅ CARRIAGE RETURN FIRST
-    INT 21H
-    MOV AH, 0EH
-    MOV DL, 0AH             ; ✅ LINE FEED SECOND
-    INT 21H
+    MOV BH, 0
+    INT 10H                 ; SET NEW CURSOR POSITION
+    ; PRINT SPACE SEPARATOR IN YELLOW
+    MOV AH, 09H
+    MOV AL, ' '
+    MOV BH, 0
+    MOV BL, 0EH             ; YELLOW
+    MOV CX, 1
+    INT 10H
+    ; ADVANCE CURSOR AFTER SPACE
+    MOV AH, 03H
+    MOV BH, 0
+    INT 10H
+    INC DL
+    MOV AH, 02H
+    MOV BH, 0
+    INT 10H
+    POP CX
+    INC SI                  ; NEXT COLUMN RESULT
+    LOOP DISPLAY_LOOP       ; DECREMENT CX AND REPEAT
+
+    ; MOVE CURSOR TO START OF NEXT LINE
+    MOV AH, 03H
+    MOV BH, 0
+    INT 10H                 ; READ CURSOR -> DH=ROW, DL=COL
+    INC DH                  ; NEXT ROW
+    MOV DL, 0               ; COLUMN 0
+    MOV AH, 02H
+    MOV BH, 0
+    INT 10H                 ; SET CURSOR TO START OF NEXT ROW
     
     POP DI
     POP SI
