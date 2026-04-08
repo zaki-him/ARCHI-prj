@@ -19,55 +19,56 @@
 ;   change to the main program structure.
 ;================================================================
 
+; Pile d'exeecution
 MYSTACK SEGMENT PARA STACK
-    DW 256 DUP(?)
+    DW 256 DUP(e)               ; 256 mots pour la pile
 MYSTACK ENDS
 
 DATA SEGMENT
-    ;---- working matrix and a backup copy used to reset cycles ----
-    matrix      DB '9','7','?','2','1','-','2'
+    ;---- matrice de travail et copie pour reeinitialisation ----
+    matrix      DB '9','7','e','2','1','-','2'   ; matrice 4x7
                 DB '4','M','8','2','6','3','F'
-                DB '9','%','?','4','&','6','7'
+                DB '9','%','e','4','&','6','7'
                 DB '0','/','6','2','*','=','8'
 
-    matrix_orig DB '9','7','?','2','1','-','2'
+    matrix_orig DB '9','7','e','2','1','-','2'   ; sauvegarde originale
                 DB '4','M','8','2','6','3','F'
-                DB '9','%','?','4','&','6','7'
+                DB '9','%','e','4','&','6','7'
                 DB '0','/','6','2','*','=','8'
 
-    ROWS  EQU 4
-    COLS  EQU 7
-    TOTAL EQU 28
+    ROWS  EQU 4                 ; nombre de lignes
+    COLS  EQU 7                 ; nombre de colonnes
+    TOTAL EQU 28                ; taille totale
 
-    ;---- color attributes used by the modules ----
-    BLANC EQU 0Fh
-    ROUGE EQU 04h
-    VERT  EQU 0Ah
-    JAUNE EQU 0Eh
+    ;---- attributs de couleur ----
+    BLANC EQU 0Fh               ; blanc
+    ROUGE EQU 04h               ; rouge
+    VERT  EQU 0Ah               ; vert
+    JAUNE EQU 0Eh               ; jaune
 
-    color           DB 28 DUP(0Fh)
-    use_color_array DB 0
+    color           DB 28 DUP(0Fh) ; couleur par cellule
+    use_color_array DB 0           ; drapeau colorisation
 
-    ;----    helpers ----
-    SUM       DB ?
-    TAB_C     DB 7 DUP(?)
-    TAB_ASCII DB '0123456789'
+    ;---- variables utilitaires ----
+    SUM       DB e               ; accumulateur de somme
+    TAB_C     DB 7 DUP(e)        ; sommes de colonnes
+    TAB_ASCII DB '0123456789'    ; table XLAT pour conversion
               DB 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
               DB 'abcdefghijklmnopqrstuvwxyz'
-              DB ' !"#$&()*+,-./:;<=>?@[]^_`{|}~'
+              DB ' !"#$&()*+,-./:;<=>e@[]^_`{|}~'
 
-    ;---- 1Ch scheduling state ----
-    tick_count   DW 0
-    TICKS_QUANTUM EQU 55         ; 18.2 * 3  (TEST: 3 seconds)
-    task_ready   DB 1            ; first task fires immediately
-    paused       DB 0
-    old_1ch_off  DW 0
-    old_1ch_seg  DW 0
+    ;---- eetat ordonnancement INT 1Ch ----
+    tick_count   DW 0             ; compteur de tics
+    TICKS_QUANTUM EQU 55          ; quantum = 3 sec (TEST)
+    task_ready   DB 1             ; preet pour la prochaine teeche
+    paused       DB 0             ; drapeau pause
+    old_1ch_off  DW 0             ; ancien offset vecteur 1Ch
+    old_1ch_seg  DW 0             ; ancien segment vecteur 1Ch
 
-    ;---- 16-step scenario ----
-    scenario   DB 1,2,3,4,5, 1,2,3,4,5, 6,7, 6,7, 6,7
-    SCEN_LEN   EQU 16
-    scen_index DB 0
+    ;---- sceenario 16 eetapes ----
+    scenario   DB 1,2,3,4,5, 1,2,3,4,5, 6,7, 6,7, 6,7  ; ordre des teeches
+    SCEN_LEN   EQU 16             ; longueur du sceenario
+    scen_index DB 0               ; indice courant
 
     ;---- titles ----
     title_pre  DB 'MATRIX PREPROCESSING','$'
@@ -107,32 +108,32 @@ INCLUDE task5.asm
 INCLUDE task67.asm
 
 ;================================================================
-;  INT 1Ch handler  (preserves all registers it touches)
+;  Gestionnaire INT 1Ch  (preeserve les registres)
 ;================================================================
 new_1ch PROC FAR
     PUSH AX
     PUSH DS
 
-    MOV AX, DATA
+    MOV AX, DATA                 ; initialiser segment donneees
     MOV DS, AX
 
-    ; --- bonus : any key fires the next task immediately ---
-    MOV AH, 01h
-    INT 16h                      ; ZF=0 if a key is waiting
+    ; --- veerifier clavier pour lancer teeche immeediatement ---
+    MOV AH, 01h                  ; statut clavier
+    INT 16h                      ; ZF=0 si touche en attente
     JZ  ich_no_key
     MOV AH, 00h
-    INT 16h                      ; consume it
-    MOV tick_count, 0
-    MOV task_ready, 1
+    INT 16h                      ; consommer la touche
+    MOV tick_count, 0            ; reeinitialiser compteur
+    MOV task_ready, 1            ; signaler teeche preete
     JMP ich_exit
 ich_no_key:
 
-    INC tick_count
+    INC tick_count               ; increementer le compteur
     MOV AX, tick_count
-    CMP AX, TICKS_QUANTUM
+    CMP AX, TICKS_QUANTUM        ; quantum atteint e
     JB  ich_exit
-    MOV tick_count, 0
-    MOV task_ready, 1
+    MOV tick_count, 0            ; reeinitialiser
+    MOV task_ready, 1            ; lancer la teeche
 
 ich_exit:
     POP DS
@@ -141,7 +142,7 @@ ich_exit:
 new_1ch ENDP
 
 ;================================================================
-;  install / restore vector 1Ch
+;  installer/restaurer le vecteur d'interruption 1Ch
 ;================================================================
 INSTALL_1CH PROC
     PUSH AX
@@ -149,22 +150,22 @@ INSTALL_1CH PROC
     PUSH DX
     PUSH ES
     PUSH DS
-    MOV AH, 35h
+    MOV AH, 35h                  ; reecupeerer ancien vecteur
     MOV AL, 1Ch
-    INT 21h                      ; ES:BX = previous handler
-    MOV old_1ch_off, BX
+    INT 21h                      ; ES:BX = ancien gestionnaire
+    MOV old_1ch_off, BX          ; sauvegarder offset
     MOV AX, ES
-    MOV old_1ch_seg, AX
-    MOV AX, CS
+    MOV old_1ch_seg, AX          ; sauvegarder segment
+    MOV AX, CS                   ; nouveau segment = code courant
     MOV DS, AX
-    MOV DX, OFFSET new_1ch
-    MOV AH, 25h
+    MOV DX, OFFSET new_1ch       ; adresse du nouveau gestionnaire
+    MOV AH, 25h                  ; installer nouveau vecteur
     MOV AL, 1Ch
     INT 21h
     POP DS
     POP ES
     POP DX
-    POP BX
+    POP BX  
     POP AX
     RET
 INSTALL_1CH ENDP
@@ -173,10 +174,10 @@ RESTORE_1CH PROC
     PUSH AX
     PUSH DX
     PUSH DS
-    MOV DX, old_1ch_off
-    MOV AX, old_1ch_seg
+    MOV DX, old_1ch_off          ; reecupeerer ancien offset
+    MOV AX, old_1ch_seg          ; reecupeerer ancien segment
     MOV DS, AX
-    MOV AH, 25h
+    MOV AH, 25h                  ; restaurer ancien vecteur
     MOV AL, 1Ch
     INT 21h
     POP DS
@@ -186,52 +187,52 @@ RESTORE_1CH PROC
 RESTORE_1CH ENDP
 
 ;================================================================
-;  small helpers
+;  petites fonctions utilitaires
 ;================================================================
 CLEAR_SCREEN PROC
-    PUSH AX
-    MOV AH, 00h
-    MOV AL, 03h
-    INT 10h
+    PUSH AX                      ; sauvegarder AX
+    MOV AH, 00h                  ; mode videeo
+    MOV AL, 03h                  ; texte 80x25, clair
+    INT 10h                      ; BIOS : effacer eecran
     POP AX
     RET
 CLEAR_SCREEN ENDP
 
-PRINT_STR PROC                       ; in: DX = $-string
-    PUSH AX
-    MOV AH, 09h
-    INT 21h
+PRINT_STR PROC                   ; entreee: DX = chaeene$
+    PUSH AX                      ; sauvegarder AX
+    MOV AH, 09h                  ; DOS : afficher chaeene
+    INT 21h                      ; arreet au '$'
     POP AX
     RET
 PRINT_STR ENDP
 
-GOTO_XY PROC                         ; in: DH=row, DL=col
-    PUSH AX
-    PUSH BX
-    MOV AH, 02h
-    MOV BH, 0
+GOTO_XY PROC                     ; entreee: DH=ligne, DL=colonne
+    PUSH AX                      ; sauvegarder AX
+    PUSH BX                      ; sauvegarder BX
+    MOV AH, 02h                  ; BIOS : positioner curseur
+    MOV BH, 0                    ; page videeo 0
     INT 10h
     POP BX
     POP AX
     RET
 GOTO_XY ENDP
 
-; PRINT_2DIG : print AL as a 2-digit decimal number
+; PRINT_2DIG : affiche AL en deecimal 2 chiffres
 PRINT_2DIG PROC
-    PUSH AX
+    PUSH AX                      ; sauvegarder registres
     PUSH BX
     PUSH DX
-    XOR AH, AH
-    MOV BL, 10
-    DIV BL                           ; AL=tens, AH=units
-    MOV BL, AH                       ; save units in BL
-    ADD AL, '0'
+    XOR AH, AH                   ; AX = AL (zeero le haut)
+    MOV BL, 10                   ; diviseur
+    DIV BL                       ; AL=dizaines, AH=unitees
+    MOV BL, AH                   ; sauvegarder unitees
+    ADD AL, '0'                  ; convertir en ASCII
     MOV DL, AL
-    MOV AH, 02h
+    MOV AH, 02h                  ; afficher dizaine
     INT 21h
-    MOV DL, BL
-    ADD DL, '0'
-    MOV AH, 02h
+    MOV DL, BL                   ; unitee
+    ADD DL, '0'                  ; convertir en ASCII
+    MOV AH, 02h                  ; afficher unitee
     INT 21h
     POP DX
     POP BX
@@ -239,27 +240,27 @@ PRINT_2DIG PROC
     RET
 PRINT_2DIG ENDP
 
-; PRINT_DEC4 : prints AX as a 4-digit decimal number (year).
-;              Splits the digits onto the stack, then emits them.
+; PRINT_DEC4 : affiche AX en 4 chiffres deecimaux (anneee)
+;              Empile les chiffres, puis les affiche
 PRINT_DEC4 PROC
-    PUSH AX
+    PUSH AX                      ; sauvegarder registres
     PUSH BX
     PUSH CX
     PUSH DX
-    MOV CX, 4
-    MOV BX, 10
+    MOV CX, 4                    ; 4 chiffres
+    MOV BX, 10                   ; diviseur
 pd4_split:
-    XOR DX, DX
-    DIV BX                           ; AX/10 -> AX=quot, DX=remainder digit
-    PUSH DX                          ; save digit (low order first)
-    LOOP pd4_split
-    MOV CX, 4
+    XOR DX, DX                   ; zeeroiser DX
+    DIV BX                       ; AX/10 -> AX=quotient, DX=chiffre
+    PUSH DX                      ; empiler chiffre
+    LOOP pd4_split               ; 4 fois
+    MOV CX, 4                    ; 4 chiffres ee afficher
 pd4_emit:
-    POP DX
-    ADD DL, '0'
-    MOV AH, 02h
+    POP DX                       ; deepiler chiffre
+    ADD DL, '0'                  ; convertir en ASCII
+    MOV AH, 02h                  ; afficher caracteere
     INT 21h
-    LOOP pd4_emit
+    LOOP pd4_emit                ; afficher tous
     POP DX
     POP CX
     POP BX
@@ -268,59 +269,58 @@ pd4_emit:
 PRINT_DEC4 ENDP
 
 ;================================================================
-;  PRINT_DATETIME : prints a single line like
-;     Monday, March 17, 2026     17:15:02
+;  PRINT_DATETIME : affiche "Lundi, 17/03/2026     17:15:02"
 ;================================================================
 PRINT_DATETIME PROC
-    PUSH AX
+    PUSH AX                      ; sauvegarder registres
     PUSH BX
     PUSH CX
     PUSH DX
 
-    ; --- date : INT 21h AH=2Ah  CX=year, DH=month, DL=day, AL=dow ---
+    ; --- reecupeerer date : INT 21h AH=2Ah -> CX=anneee, DH=mois, DL=jour, AL=jour_semaine ---
     MOV AH, 2Ah
-    INT 21h
-    PUSH CX                           ; save year
-    PUSH DX                           ; save month/day
+    INT 21h                      ; appel systeeme DOS
+    PUSH CX                      ; empiler anneee
+    PUSH DX                      ; empiler mois/jour
 
-    ; day-of-week name
-    MOV BL, AL
-    MOV AL, DAY_LEN
-    MUL BL                            ; AX = AL * BL
+    ; afficher nom du jour de la semaine
+    MOV BL, AL                   ; AL = index jour
+    MOV AL, DAY_LEN              ; taille d'une entreee (10)
+    MUL BL                       ; offset dans days_tbl
     MOV BX, AX
-    LEA DX, days_tbl
-    ADD DX, BX
+    LEA DX, days_tbl             ; adresse table jours
+    ADD DX, BX                   ; pointer sur le jour
+    MOV AH, 09h                  ; afficher chaeene
+    INT 21h
+
+    LEA DX, sep                  ; afficher virgule
     MOV AH, 09h
     INT 21h
 
-    LEA DX, sep
-    MOV AH, 09h
-    INT 21h
-
-    ; day number
-    POP DX                            ; DL=day, DH=month
+    ; afficher numeero du jour
+    POP DX                       ; DL=jour, DH=mois
     PUSH DX
-    MOV AL, DL
-    CALL PRINT_2DIG
+    MOV AL, DL                   ; jour dans AL
+    CALL PRINT_2DIG              ; afficher 2 chiffres
 
-    LEA DX, slash
+    LEA DX, slash                ; afficher "/"
     MOV AH, 09h
     INT 21h
 
-    ; month
+    ; afficher mois
     POP DX
-    MOV AL, DH
-    CALL PRINT_2DIG
+    MOV AL, DH                   ; mois dans AL
+    CALL PRINT_2DIG              ; afficher 2 chiffres
 
-    LEA DX, slash
+    LEA DX, slash                ; afficher "/"
     MOV AH, 09h
     INT 21h
 
-    ; year
-    POP AX                            ; year in AX
+    ; afficher anneee (4 chiffres)
+    POP AX                       ; anneee dans AX
     CALL PRINT_DEC4
 
-    ; gap
+    ; espacements
     LEA DX, sep
     MOV AH, 09h
     INT 21h
@@ -328,27 +328,31 @@ PRINT_DATETIME PROC
     MOV AH, 09h
     INT 21h
 
-    ; --- time : AH=2Ch  CH=hh, CL=mm, DH=ss ---
+    ; --- reecuperer heure : INT 21h AH=2Ch -> CH=hh, CL=mm, DH=ss ---
     MOV AH, 2Ch
-    INT 21h
-    PUSH DX
-    PUSH CX
-    MOV AL, CH
-    CALL PRINT_2DIG
-    LEA DX, colon
+    INT 21h                      ; appel systeeme DOS
+    PUSH DX                      ; empiler secondes
+    PUSH CX                      ; empiler minutes
+    MOV AL, CH                   ; heures
+    CALL PRINT_2DIG              ; afficher heures
+
+    LEA DX, colon                ; afficher ":"
     MOV AH, 09h
     INT 21h
+
     POP CX
     PUSH CX
-    MOV AL, CL
-    CALL PRINT_2DIG
-    LEA DX, colon
+    MOV AL, CL                   ; minutes
+    CALL PRINT_2DIG              ; afficher minutes
+
+    LEA DX, colon                ; afficher ":"
     MOV AH, 09h
     INT 21h
+
     POP CX
     POP DX
-    MOV AL, DH
-    CALL PRINT_2DIG
+    MOV AL, DH                   ; secondes
+    CALL PRINT_2DIG              ; afficher secondes
 
     POP DX
     POP CX
@@ -358,22 +362,22 @@ PRINT_DATETIME PROC
 PRINT_DATETIME ENDP
 
 ;================================================================
-;  RESET_MATRIX : copies matrix_orig back into matrix
+;  RESET_MATRIX : restaure la matrice originale
 ;================================================================
 RESET_MATRIX PROC
-    PUSH AX
+    PUSH AX                      ; sauvegarder registres
     PUSH CX
     PUSH SI
     PUSH DI
-    LEA SI, matrix_orig
-    LEA DI, matrix
-    MOV CX, TOTAL
+    LEA SI, matrix_orig          ; SI -> copie originale
+    LEA DI, matrix               ; DI -> matrice travail
+    MOV CX, TOTAL                ; 28 octets ee copier
 rm_loop:
-    MOV AL, [SI]
-    MOV [DI], AL
-    INC SI
-    INC DI
-    LOOP rm_loop
+    MOV AL, [SI]                 ; charger un octet
+    MOV [DI], AL                 ; copier ee la destination
+    INC SI                       ; increementer source
+    INC DI                       ; increementer destination
+    LOOP rm_loop                 ; boucler 28 fois
     POP DI
     POP SI
     POP CX
@@ -382,43 +386,43 @@ rm_loop:
 RESET_MATRIX ENDP
 
 ;================================================================
-;  RUN_HEADER : clear screen, print date/time line, title and
-;               task name. AL = task number (1..7).
+;  RUN_HEADER : effacer eecran, afficher date/heure/titre/nom teeche
+;               AL = numeero teeche (1..7)
 ;================================================================
 RUN_HEADER PROC
-    PUSH AX
+    PUSH AX                      ; sauvegarder registres
     PUSH BX
     PUSH DX
 
-    CALL CLEAR_SCREEN
+    CALL CLEAR_SCREEN            ; effacer l'eecran
 
-    ; line 0 : date / time
-    MOV DH, 0
-    MOV DL, 0
-    CALL GOTO_XY
-    CALL PRINT_DATETIME
+    ; ligne 0 : afficher date/heure
+    MOV DH, 0                    ; ligne 0
+    MOV DL, 0                    ; colonne 0
+    CALL GOTO_XY                 ; positionner curseur
+    CALL PRINT_DATETIME          ; afficher date/heure
 
-    ; line 2 : title
-    MOV DH, 2
-    MOV DL, 20
+    ; ligne 2 : afficher titre
+    MOV DH, 2                    ; ligne 2
+    MOV DL, 20                   ; colonne 20
     CALL GOTO_XY
-    CMP AL, 6
-    JL  rh_pre
-    LEA DX, title_proc
+    CMP AL, 6                    ; teeche >= 6 e
+    JL  rh_pre                   ; non : preetraitement
+    LEA DX, title_proc           ; oui : traitement
     JMP rh_pt
 rh_pre:
-    LEA DX, title_pre
+    LEA DX, title_pre            ; titre preetraitement
 rh_pt:
     PUSH AX
-    MOV AH, 09h
+    MOV AH, 09h                  ; afficher titre
     INT 21h
     POP AX
 
-    ; line 4 : task name
-    MOV DH, 4
-    MOV DL, 10
+    ; ligne 4 : afficher nom de la teeche
+    MOV DH, 4                    ; ligne 4
+    MOV DL, 10                   ; colonne 10
     CALL GOTO_XY
-    CMP AL, 1
+    CMP AL, 1                    ; quelle teeche e
     JNE rh_n2
     LEA DX, name_t1
     JMP rh_print
@@ -450,10 +454,10 @@ rh_n6:
 rh_n7:
     LEA DX, name_t7
 rh_print:
-    MOV AH, 09h
+    MOV AH, 09h                  ; afficher le nom
     INT 21h
 
-    ; line 7 : matrix area starts here
+    ; ligne 7 : la matrice commence ici
     MOV DH, 7
     MOV DL, 20
     CALL GOTO_XY
