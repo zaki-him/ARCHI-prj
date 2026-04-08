@@ -406,7 +406,7 @@ RUN_HEADER PROC
     MOV DH, 2                    ; ligne 2
     MOV DL, 20                   ; colonne 20
     CALL GOTO_XY
-    CMP AL, 6                    ; teeche >= 6 e
+    CMP AL, 6                    ; tache >= 6 e
     JL  rh_pre                   ; non : preetraitement
     LEA DX, title_proc           ; oui : traitement
     JMP rh_pt
